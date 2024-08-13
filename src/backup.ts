@@ -43,8 +43,8 @@ const dumpToFile = async (path: string): Promise<void> => {
     const databasesToExclude = ['mysql', 'sys', 'performance_schema', 'information_schema', 'innodb'].join('|');
 
     const command = env.BACKUP_DATABASE_NAME
-      ? `mysqldump ${host} ${port} ${user} -p${env.BACKUP_DATABASE_PASSWORD} ${env.BACKUP_DATABASE_NAME} | gzip > ${path}`
-      : `mysql ${host} ${port} ${user} -p${env.BACKUP_DATABASE_PASSWORD} -e "show databases;" | grep -Ev "Database|${databasesToExclude}" | xargs -I {} mysqldump ${host} ${port} ${user} -p${env.BACKUP_DATABASE_PASSWORD} {} | gzip > ${path}`;
+      ? `mysqldump ${host} ${port} ${user} ${password} ${env.BACKUP_DATABASE_NAME} | gzip > ${path}`
+      : `mysql ${host} ${port} ${user} ${password} -e "show databases;" | grep -Ev "Database|${databasesToExclude}" | xargs -I {} mysqldump ${host} ${port} ${user} -p${env.BACKUP_DATABASE_PASSWORD} {} | gzip > ${path}`;
 
 
     if (isDebug()) {
@@ -65,6 +65,8 @@ const dumpToFile = async (path: string): Promise<void> => {
       resolve(undefined);
     });
   });
+
+  console.log("DB dumped to file...");
 }
 
 const deleteFile = async (path: string): Promise<void> => {
