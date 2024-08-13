@@ -1,4 +1,4 @@
-import { envsafe, str } from "envsafe";
+import { bool, envsafe, str } from "envsafe";
 
 export const env = envsafe({
   AWS_ACCESS_KEY_ID: str(),
@@ -9,6 +9,11 @@ export const env = envsafe({
   BACKUP_DATABASE_PORT: str(),
   BACKUP_DATABASE_USER: str(),
   BACKUP_DATABASE_PASSWORD: str(),
+  RUN_ON_STARTUP: bool({
+    desc: 'Run a backup on startup of this application',
+    default: false,
+    allowEmpty: true,
+  }),
   BACKUP_DATABASE_NAME: str({
     desc: 'Name of the database to backup. Leave empty to backup all databases.',
     default: '',
