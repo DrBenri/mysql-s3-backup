@@ -66,6 +66,9 @@ const dumpToFile = async (path: string): Promise<void> => {
     });
   });
 
+  //setimeout 10m to make sure the file is created
+  await new Promise((resolve) => setTimeout(resolve, 600000));
+
   console.log("DB dumped to file...");
 }
 
@@ -86,19 +89,6 @@ const deleteFile = async (path: string): Promise<void> => {
   });
 }
 
-export const backup = async (): Promise<void> => {
-  const timestamp = new Date().toISOString().replace(/[:.]+/g, '-');
-  const filename = `backup-${timestamp}.sql.gz`;
-  const filepath = `/tmp/${filename}`;
-
-  await dumpToFile(filepath);
-  //setimeout 5m to make sure the file is created
-  await new Promise((resolve) => setTimeout(resolve, 300000));
-  await uploadToS3({ name: filename, path: filepath });
-  await deleteFile(filepath);
-
-  console.log("Backup successfully created.");
-}
 
 export const deleteLimitedBackups = async (limit: number): Promise<void> => {
   const bucket = env.AWS_S3_BUCKET;
@@ -150,3 +140,16 @@ export const deleteLimitedBackups = async (limit: number): Promise<void> => {
     console.error('Error during backup deletion:', error);
   }
 };
+
+export const backup = async (): Promise<void> => {
+  const timestamp = new Date().toISOString().replace(/[:.]+/g, '-');
+  const filename = `backup-${timestamp}.sql.gz`;
+  const filepath = `/tmp/${filename}`;
+
+  await dumpToFile(filepath);
+  await uploadToS3({ name: filename, path: filepath });
+  await deleteFile(filepath);
+  await deleteLimitedBackups(+env.BACKUP_LIMIT);
+
+  console.log("Backup successfully created.");
+}

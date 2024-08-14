@@ -34,4 +34,9 @@ export const env = envsafe({
     default: '0',
     allowEmpty: true
   }),
+  BACKUP_LIMIT: str({
+    desc: 'Number of backups to keep in S3.',
+    default: '7',
+    allowEmpty: true
+  })
 });
