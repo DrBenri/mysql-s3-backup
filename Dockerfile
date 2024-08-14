@@ -1,9 +1,14 @@
-# Use Ruby base image
-FROM ruby:2.7.2
+# Use Ubuntu base image
+FROM ubuntu:latest
 
 # Install system dependencies
 RUN apt-get update -qq && \
     apt-get install -y build-essential libpq-dev nodejs wget curl unzip && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Ruby
+RUN apt-get update -qq && \
+    apt-get install -y ruby-full && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install MySQL client
@@ -24,7 +29,7 @@ WORKDIR /app
 COPY Gemfile Gemfile.lock ./
 
 # Install Ruby gems
-RUN bundle install
+RUN gem install bundler && bundle install
 
 # Copy the application code
 COPY . .
