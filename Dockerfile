@@ -29,8 +29,5 @@ RUN bundle install
 # Copy the application code
 COPY . .
 
-# Ensure the .env file is copied
-COPY .env .env
-
 # Run the backup script
 CMD ["ruby", "backup.rb"]

@@ -29,9 +29,13 @@ system(backup_command)
 if $?.exitstatus == 0
   puts "Backup successful: #{backup_file}"
 
+  # Compress the backup file
+  compressed_backup_file = "#{backup_file}.gz"
+  system("gzip -c #{backup_file} > #{compressed_backup_file}")
+
   # Upload to S3
   s3_client = Aws::S3::Client.new(region: AWS_REGION)
-  s3_client.put_object(bucket: S3_BUCKET, key: "backups/#{File.basename(backup_file)}", body: File.read(backup_file))
+  s3_client.put_object(bucket: S3_BUCKET, key: "backups/#{File.basename(compressed_backup_file)}", body: File.read(compressed_backup_file))
 
   puts "Upload to S3 successful"
 else
