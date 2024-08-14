@@ -92,6 +92,8 @@ export const backup = async (): Promise<void> => {
   const filepath = `/tmp/${filename}`;
 
   await dumpToFile(filepath);
+  //setimeout 5m to make sure the file is created
+  await new Promise((resolve) => setTimeout(resolve, 300000));
   await uploadToS3({ name: filename, path: filepath });
   await deleteFile(filepath);
 
