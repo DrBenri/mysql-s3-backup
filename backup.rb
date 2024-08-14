@@ -25,6 +25,11 @@ def backup_and_upload
     # Command to backup the database
     backup_command = "mysqldump -h #{DB_HOST} -P #{DB_PORT} -u #{DB_USERNAME} -p#{DB_PASSWORD} #{DB_NAME} > #{backup_file}"
 
+    if ENV['DEBUG']
+        puts "Backup command: #{backup_command}"
+    end
+     puts "Backup command: #{backup_command}"
+
     # Execute the backup command
     system(backup_command)
 
@@ -51,4 +56,3 @@ end
 
 #Call the backup_and_upload method
 backup_and_upload()
-
