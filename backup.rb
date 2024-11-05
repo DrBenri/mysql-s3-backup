@@ -1,7 +1,7 @@
 require 'fileutils'
 require 'time'
 require 'aws-sdk-s3'
-require 'dotenv/load'  # Add this line to load environment variables from .env
+require 'dotenv/load'  # Load environment variables from .env
 
 # Configuration
 DB_CONNECTION = ENV['BACKUP_DATABASE_CONNECTION']
@@ -14,30 +14,27 @@ S3_BUCKET = ENV['AWS_S3_BUCKET']
 AWS_REGION = ENV['AWS_S3_REGION']
 BACKUP_DIR = 'backups'
 
-
 def backup_and_upload
-    # Ensure backup directory exists
-    FileUtils.mkdir_p(BACKUP_DIR)
+  # Ensure backup directory exists
+  FileUtils.mkdir_p(BACKUP_DIR)
 
-    # Generate timestamp
-    timestamp = Time.now.strftime('%Y%m%d%H%M%S')
-    backup_file = File.join(BACKUP_DIR, "backup_#{timestamp}.sql")
+  # Generate timestamp
+  timestamp = Time.now.strftime('%Y%m%d%H%M%S')
+  backup_file = File.join(BACKUP_DIR, "backup_#{timestamp}.sql")
 
-    # Command to backup the database
-    backup_command = if DB_CONNECTION.nil?
-            "mysqldump -h #{DB_HOST} -P #{DB_PORT} -u #{DB_USERNAME} -p#{DB_PASSWORD} #{DB_NAME} > #{backup_file}"
-        else
-            "mysqldump #{DB_CONNECTION} > #{backup_file}"
-        end
+  # Command to backup the database
+  backup_command = if DB_CONNECTION.nil?
+                     "mysqldump -h #{DB_HOST} -P #{DB_PORT} -u #{DB_USERNAME} -p#{DB_PASSWORD} #{DB_NAME} > #{backup_file}"
+                   else
+                     "mysqldump #{DB_CONNECTION} > #{backup_file}"
+                   end
 
-    if ENV['DEBUG']
-        puts "Backup command: #{backup_command}"
-    end
+  puts "Backup command: #{backup_command}" if ENV['DEBUG']
 
-    # Execute the backup command
-    system(backup_command)
+  # Execute the backup command
+  system(backup_command)
 
-    if $?.exitstatus == 0
+  if $?.exitstatus == 0
     puts "Backup successful: #{backup_file}"
 
     # Compress the backup file
@@ -47,37 +44,44 @@ def backup_and_upload
     # Upload to S3
     s3_client = Aws::S3::Client.new(region: AWS_REGION)
     s3_client.put_object(bucket: S3_BUCKET, key: "backups/#{File.basename(compressed_backup_file)}", body: File.read(compressed_backup_file))
-    
-    # Remove the backup file and uncompressed backup file
+
+    # Remove the backup file and compressed backup file
     File.delete(backup_file)
     File.delete(compressed_backup_file)
-    
+
     puts "Upload to S3 successful"
-    else
+  else
     puts "Backup failed!"
-    end
+  end
 end
 
 def cleanup
-    max_backups = 7
+  max_backups = 7
 
-    # List all backups
-    backups = Dir.glob("#{BACKUP_DIR}/*.sql.gz").sort
+  # Initialize S3 client
+  s3_client = Aws::S3::Client.new(region: AWS_REGION)
 
-    # Delete old backups
-    if backups.length > max_backups
-    backups_to_delete = backups[0..-(max_backups + 1)]
+  # List all backups in S3
+  objects = s3_client.list_objects_v2(bucket: S3_BUCKET, prefix: 'backups/').contents
+
+  # Sort objects by last modified date
+  backups = objects.sort_by(&:last_modified)
+
+  # Delete old backups if more than max_backups
+  if backups.size > max_backups
+    backups_to_delete = backups[0...(backups.size - max_backups)]
     backups_to_delete.each do |backup|
-        File.delete(backup)
-        puts "Deleted old backup: #{backup}"
+      puts "Deleting old backup: #{backup.key}"
+      s3_client.delete_object(bucket: S3_BUCKET, key: backup.key)
+      puts "Deleted old backup: #{backup.key}"
     end
+  else
+    puts "No old backups to delete."
+  end
 end
 
-end
-
-#Call the backup_and_upload method
-# will backup every 24 hours
+# Call the backup_and_upload method - will backup every 24 hours
 backup_and_upload()
 
-# Call the cleanup method, just keep the last 7 backups
+# Call the cleanup method to keep only the last 7 backups in S3
 cleanup()
