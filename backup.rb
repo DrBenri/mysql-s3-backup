@@ -59,14 +59,14 @@ def backup_and_upload
 end
 
 def cleanup
-    MAX_BACKUPS = 7
+    max_backups = 7
 
     # List all backups
     backups = Dir.glob("#{BACKUP_DIR}/*.sql.gz").sort
 
     # Delete old backups
-    if backups.length > MAX_BACKUPS
-    backups_to_delete = backups[0..-(MAX_BACKUPS + 1)]
+    if backups.length > max_backups
+    backups_to_delete = backups[0..-(max_backups + 1)]
     backups_to_delete.each do |backup|
         File.delete(backup)
         puts "Deleted old backup: #{backup}"
