@@ -4,7 +4,7 @@ require 'aws-sdk-s3'
 require 'dotenv/load'  # Load environment variables from .env
 
 # Configuration
-DB_CONNECTION = ENV['BACKUP_DATABASE_CONNECTION']
+DB_TYPE = ENV['BACKUP_DATABASE_TYPE'] || 'mysql' # Use 'mysql' or 'mariadb'
 DB_HOST = ENV['BACKUP_DATABASE_HOST']
 DB_PORT = ENV['BACKUP_DATABASE_PORT']
 DB_USERNAME = ENV['BACKUP_DATABASE_USER']
@@ -22,11 +22,21 @@ def backup_and_upload
   timestamp = Time.now.strftime('%Y%m%d%H%M%S')
   backup_file = File.join(BACKUP_DIR, "backup_#{timestamp}.sql")
 
+  # Determine the appropriate dump command based on DB_TYPE
+  dump_command = case DB_TYPE
+                 when 'mysql'
+                   "mysqldump"
+                 when 'mariadb'
+                   "mariadb-dump"
+                 else
+                   raise "Unsupported database type: #{DB_TYPE}"
+                 end
+
   # Command to backup the database
-  backup_command = if DB_CONNECTION.nil?
-                     "mysqldump -h #{DB_HOST} -P #{DB_PORT} -u #{DB_USERNAME} -p#{DB_PASSWORD} #{DB_NAME} > #{backup_file}"
+  backup_command = if ENV['BACKUP_DATABASE_CONNECTION']
+                     "#{dump_command} #{ENV['BACKUP_DATABASE_CONNECTION']} > #{backup_file}"
                    else
-                     "mysqldump #{DB_CONNECTION} > #{backup_file}"
+                     "#{dump_command} -h #{DB_HOST} -P #{DB_PORT} -u #{DB_USERNAME} -p#{DB_PASSWORD} #{DB_NAME} > #{backup_file}"
                    end
 
   puts "Backup command: #{backup_command}" if ENV['DEBUG']
